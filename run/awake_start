@@ -6,6 +6,19 @@ then
   exit
 fi
 
+function ble_ping {
+  while true
+  do
+    if timeout 30 /root/teslabin/wake_ble.sh
+    then
+      sleep 90
+    else
+      log "Failed to connect to vehicle over BLE"
+      sleep 5
+    fi
+  done
+}
+
 function ping {
   while true
   do
@@ -74,6 +87,11 @@ function ping {
 }
 
 case "${TESLA_WAKE_MODE:-stream}" in
+  ble)
+    log "Starting background task to keep car awake via BLE."
+    ble_ping &
+    echo $! > /tmp/keep_awake_task_pid
+    ;;
   sentry)
     is_sentry_mode_enabled=$(/root/bin/tesla_api.py is_sentry_mode_enabled | tr '[:upper:]' '[:lower:]')
     if [ "false" = "${is_sentry_mode_enabled}" ]
